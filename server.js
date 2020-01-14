@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
 })
 
 app.get('/location', (req,res) => {
-  console.log(req);
+  // console.log(req);
   console.log(req.query);
 })
 
