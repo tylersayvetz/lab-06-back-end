@@ -19,7 +19,7 @@ const Location = function(city) {
   // build the object
   this.search_query = city;
   this.formatted_location = geoData.display_name;
-  this.lattitude = geoData.lat;
+  this.latitude = geoData.lat;
   this.longitude = geoData.lon;
   console.log(this)
   }
