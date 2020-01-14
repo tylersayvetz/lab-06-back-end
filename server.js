@@ -13,3 +13,10 @@ app.listen(PORT, () => {console.log(`'Your server is listening on ${PORT}`)});
 //configure express
 app.use(cors());
 
+
+
+app.get('/', (req, res) => {
+  console.log('Im alive');
+  res.status(200).send('Server is alive');
+})
+
