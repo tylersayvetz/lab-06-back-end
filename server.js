@@ -23,6 +23,6 @@ app.get('/', (req, res) => {
 })
 
 const geoData = require('./data/geo.json'); 
-console.log(geoData);
+// console.log(geoData);
 
 
