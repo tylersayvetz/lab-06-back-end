@@ -17,7 +17,7 @@ Start time: _1030____
 
 Finish time: _11____
 
-Actual time needed to complete: _____
+Actual time needed to complete: _12 min_
 
 
 
