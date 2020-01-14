@@ -18,7 +18,7 @@ const Location = function(city) {
   const geoData = require('./data/geo.json')[0]; 
   // build the object
   this.search_query = city;
-  this.formatted_location = geoData.display_name;
+  this.formatted_query = geoData.display_name;
   this.latitude = geoData.lat;
   this.longitude = geoData.lon;
   console.log(this)
