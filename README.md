@@ -1,4 +1,12 @@
-# lab-06
+lab-07
+Continuing to catch up on lab-06. Stopped after the bad-query-handler-step (#4 on Trello) and continued to lab-07 and working with live APIs.
+
+Current state of project is not deployed to Heroku. LocalHost is proving to be more than adequate for testing and the project is sufficiently linear to work in one working branch. Will merge with master and depoy to Heroku before 2pm 1/15.
+
+
+
+
+lab-06
 Current status: 
 initial setup complete. Collaborators added. 
 

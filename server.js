@@ -3,6 +3,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const superagent = require('superagent');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 3001;
@@ -11,11 +12,13 @@ const PORT = process.env.PORT || 3001;
 //configure express
 app.use(cors());
 
+//cached Geocoding locations
+const cachedLocations = [];
 
 
-//verify city query
+//----------Functions and const area ----------
 const findCity = (req, res, next) => {
-  //is the city valid? if not send an error.
+  //does the searched city exist? if not redirect to /error
   const city = req.query.city;
   try {
     const rawData = require('./data/geo.json');
@@ -27,13 +30,14 @@ const findCity = (req, res, next) => {
       next();
     }
     else {
-      res.redirect('/error?error=not-found');
+      res.status(500).json({
+        status: 500,
+        responseText: `Sorry, something went wrong. Check your search. Error Code: ${req.query.error}`
+      })
     }
   } catch (error) {
     console.log(error);
   }
-  //if the city is valid, next()
-  
 }
 
 //constructor functions
@@ -73,22 +77,7 @@ const Weather = function () {
   }
 }
 
-
-
-
-
-
-
-
-/* {
-  search_query: 'Lynnwood'
-  formatted_query: etc etc...'
-}}
-*/
-
-
-
-//routes
+//----------routes----------
 app.get('/', (req, res) => {
   // console.log(req.query);
   // console.log(req.params); 
@@ -102,8 +91,6 @@ app.get('/location', findCity, (req, res) => {
   const responseObj = new Location(reqCity);
   console.log("in route: ", responseObj);
   res.status(200).send(responseObj);
- 
-
 })
 
 app.get('/weather', (req, res) => {
@@ -116,17 +103,10 @@ app.get('/yelp', (req, res) => {
 
 })
 
-app.get('/error', (req, res) => {
-  console.log();
-  res.status(500).json({
-    status: 500,
-    responseText: "Sorry, something went wrong. Check your search."
-  })
-})
-
 app.get('*', (req, res) => {
   res.status(404).send('that route cannot be found');
 })
 
-//configure port
+
+// listen
 app.listen(PORT, () => { console.log(`Your server is listening on ${PORT}`) });
