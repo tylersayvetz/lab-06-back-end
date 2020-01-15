@@ -40,7 +40,7 @@ Start time: 1145
 
 Finish time: 1245
 
-Actual time needed to complete: _____
+Actual time needed to complete: 1250
 
 
 Number and name of feature: use the lat/long from the location request to gather weather information from that location using Darksky API.
@@ -51,7 +51,10 @@ Start time: 1245
 
 Finish time: 1345
 
-Actual time needed to complete: _____
+Actual time needed to complete: 1324
+
+
+
 
 
 Will be out of time by then.

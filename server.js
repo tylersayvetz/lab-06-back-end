@@ -49,19 +49,13 @@ const Location = function (city) {
   console.log(this);
 }
 
-const Weather = function () {
-  try {
-    const darkSky = require('./data/darksky.json');
-    this.weather = darkSky.daily.data.map(time => {
-      return {
-        forecast: time.summary,
-        time: new Date(time.time).toDateString()
-      }
-    })
-  }
-  catch (error) {
-    console.log(error);
-  }
+const Weather = function (data) {
+  this.weather = data.daily.data.map(time => {
+    return {
+      forecast: time.summary,
+      time: new Date(time.time * 1000).toDateString()
+    }
+  })
 }
 
 //----------routes----------
@@ -102,13 +96,11 @@ app.get('/location', (req, res) => {
 })
 
 app.get('/weather', (req, res) => {
-  
-  console.log('Weather route fired, query: ', req.query);
-  superagent.get(`https://api.darksky.net/forecast/[key]/[latitude],[longitude]`)
-    .then(()=> {
-      const responseObj = new Weather();
+  superagent.get(`https://api.darksky.net/forecast/${process.env.DARK_SKY}/${req.query.latitude},${req.query.longitude}`)
+    .then((results) => {
+      console.log(results);
+      const responseObj = new Weather(results.body);
       res.status(200).json(responseObj.weather);
-
     })
 })
 
