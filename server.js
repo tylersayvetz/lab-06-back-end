@@ -26,7 +26,7 @@ const findCity = (req, res, next) => {
       const foundCity = cit.display_name.split(',');
       return (foundCity[0].toLowerCase() === city) ? city : null;
     })
-    if (valid) { 
+    if (valid) {
       next();
     }
     else {
@@ -42,29 +42,16 @@ const findCity = (req, res, next) => {
 
 //constructor functions
 const Location = function (city) {
-  //get the data
-  try {
-    const rawData = require('./data/geo.json');
-    // build the object
-    const geoData = rawData.find(cit => {
-      const foundCity = cit.display_name.split(',');
-      return (foundCity[0].toLowerCase() === city) ? city : undefined;
-    })
-    this.search_query = city;
-    this.formatted_query = geoData.display_name;
-    this.latitude = geoData.lat;
-    this.longitude = geoData.lon;
-    console.log(this)
-  }
-  catch (err) {
-    console.log(error);
-  }
+  this.search_query = city.display_name.split(',')[0];
+  this.formatted_query = city.display_name;
+  this.latitude = city.lat;
+  this.longitude = city.lon;
+  console.log(this);
 }
 
 const Weather = function () {
   try {
     const darkSky = require('./data/darksky.json');
-
     this.weather = darkSky.daily.data.map(time => {
       return {
         forecast: time.summary,
@@ -85,18 +72,44 @@ app.get('/', (req, res) => {
   res.status(200).send('Server is alive');
 })
 
-app.get('/location', findCity, (req, res) => {
+app.get('/location', (req, res) => {
   console.log('hi!');
   const reqCity = req.query.city;
-  const responseObj = new Location(reqCity);
-  console.log("in route: ", responseObj);
-  res.status(200).send(responseObj);
+
+  //look for a cached location that matches the query city.
+  const cachedObj = cachedLocations.find(location => {
+    return location.search_query.toLowerCase() === req.query.city ? location : undefined;
+  })
+  if (cachedObj) {
+    res.status(200).json(cachedObj);
+  } else {
+    //otherwise, make a superAgent request and get that location.
+    superagent.get(`https://us1.locationiq.com/v1/search.php?key=${process.env.LOCATION_IQ}&q=${reqCity}&format=json`)
+      .then((results) => {
+        //then construct a new Location with the results.
+        const responseObj = new Location(results.body[0]);
+        // cache the resultant object.
+        cachedLocations.push(responseObj);
+        // send the obj.
+        console.log(responseObj);
+        res.status(200).json(responseObj);
+      })
+      .catch((error) => {
+        console.log('Promise failed');
+      })
+  }
+
 })
 
 app.get('/weather', (req, res) => {
+  
   console.log('Weather route fired, query: ', req.query);
-  const responseObj = new Weather();
-  res.status(200).json(responseObj.weather);
+  superagent.get(`https://api.darksky.net/forecast/[key]/[latitude],[longitude]`)
+    .then(()=> {
+      const responseObj = new Weather();
+      res.status(200).json(responseObj.weather);
+
+    })
 })
 
 app.get('/yelp', (req, res) => {
