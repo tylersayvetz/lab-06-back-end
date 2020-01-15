@@ -5,7 +5,7 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config();
 
-const PORT = process.env.PORT || 3001; 
+const PORT = process.env.PORT || 3001;
 
 
 //configure express
@@ -22,19 +22,19 @@ app.get('/weather', weatherHandler);
 
 //LOCATION
 
-function homeHandler(req,res) {
+function homeHandler(req, res) {
   res.status(200).send('Server is alive this is the home page');
 }
 
-function locationHandler(req,res) {
-    // res.status(200).send('Server is alive this is the location page');
-    //get the data
-  const geoData = require('./data/geo.json'); 
+function locationHandler(req, res) {
+  // res.status(200).send('Server is alive this is the location page');
+  //get the data
+  const geoData = require('./data/geo.json');
   const city = req.query.city;
   console.log(req);
-    //run the data through the constructor and push to new array
+  //run the data through the constructor and push to new array
   const locationData = new Location(city, geoData);
-    //send the new array back to the front end 
+  //send the new array back to the front end 
   res.status(200).json(locationData);
 
 }
@@ -51,16 +51,27 @@ function Location(city, geoData) {
 
 
 //WEATHER
-function weatherHandler(req,res) {
-      // res.status(200).send('Server is alive this is the weather page');
-    const weatherData = require('./data/darksky.json');
-    
+function weatherHandler(req, res) {
+  // res.status(200).send('Server is alive this is the weather page');
 
+  const weatherData = require('./data/darksky.json');
+  let weatherDataArray = [];
+  let weatherArray = weatherData.daily.data;
+  // console.log('we are in handler',weatherArray);
+  weatherDataArray = weatherArray.map((obj) => {
+    new Weather(obj);
+  })
+  console.log('this is the new array', weatherDataArray);
+  res.send(weatherDataArray);
+  res.status(200).json(weatherDataArray);
 }
 
-//CONSTRUCTOR
-function Weather(daily){
 
+
+//CONSTRUCTOR
+function Weather(daily) {
+  this.forecast = daily.summary;
+  this.time = daily.time;
 }
 
 //constructor function
@@ -73,8 +84,8 @@ function Weather(daily){
 //     //build the object
 //     this.search_query = city;
 //     this.formatted_query = weatherdata.summary;
-    
-    
+
+
 //   } 
 //   catch (err) {
 //     console.log(error);
@@ -118,4 +129,4 @@ function Weather(daily){
 // })
 
 // //configure port
-app.listen(PORT, () => {console.log(`Your server is listening on ${PORT}`)});
+app.listen(PORT, () => { console.log(`Your server is listening on ${PORT}`) });
