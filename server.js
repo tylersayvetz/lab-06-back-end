@@ -47,7 +47,6 @@ const Location = function (city) {
   this.formatted_query = city.display_name;
   this.latitude = city.lat;
   this.longitude = city.lon;
-  console.log(this);
 }
 
 const Weather = function (data) {
@@ -61,13 +60,11 @@ const Weather = function (data) {
 
 //----------routes----------
 app.get('/', (req, res) => {
-  // console.log(req.query);
-  // console.log(req.params); 
   console.log('Im alive');
   res.status(200).send('Server is alive');
 })
 
-app.get('/location', (req, res) => {
+app.get('/location', findCity, (req, res,) => {
   console.log('hi!');
   const reqCity = req.query.city;
 
@@ -86,7 +83,7 @@ app.get('/location', (req, res) => {
         // cache the resultant object.
         cachedLocations.push(responseObj);
         // send the obj.
-        console.log(responseObj);
+    
         res.status(200).json(responseObj);
       })
       .catch((error) => {
@@ -99,10 +96,24 @@ app.get('/location', (req, res) => {
 app.get('/weather', (req, res) => {
   superagent.get(`https://api.darksky.net/forecast/${process.env.DARK_SKY}/${req.query.latitude},${req.query.longitude}`)
     .then((results) => {
-      console.log(results);
       const responseObj = new Weather(results.body);
       res.status(200).json(responseObj.weather);
     })
+})
+
+app.get('/events', (req, res) => {
+  console.log(req.query);
+
+
+  /*
+  Output
+  {
+    "link": "http://seattle.eventful.com/events/seattle-code-101-explore-software-development-/E0-001-126675997-3?utm_source=apis&utm_medium=apim&utm_campaign=apic",
+    "name": "Seattle Code 101: Explore Software Development",
+    "event_date": "Sat Dec 7 2019",
+    "summary": "Thinking about a new career in software development? Start here! In this one-day workshop, you&#39;ll get a taste of a day in the life of a software developer. Code 101 helps you learn what it’s like to be a software developer through a day-long immersive course for beginners that focuses on front-end web development technologies. "
+  },
+*/
 })
 
 app.get('/yelp', (req, res) => {
