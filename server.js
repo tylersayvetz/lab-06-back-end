@@ -9,78 +9,28 @@ const app = express();
 const cors = require('cors');
 const superagent = require('superagent');
 require('dotenv').config();
+const pg = require('pg');
+
+//DB config
+const client = new pg.Client(process.env.DB_URL);
+client.on('error', err => { throw err });
+client.connect()
+  .then(() => {
+    //if DB connects, then start server and listen.
+    app.listen(PORT, () => { console.log(`Your server is listening on ${PORT}`) });
+  })
+  .catch((error) => console.log("DB Failed to start.. ", error));
+
+//configure express
+const PORT = process.env.PORT || 3001;
 app.use(cors());
-const PORT = process.env.PORT || 3001;
-
-//define routes
-app.get('/', homeHandler);
-app.get('/location', locationHandler);
-app.get('/weather', weatherHandler);
-
-const PORT = process.env.PORT || 3001;
 
 
-//LOCATION
-
-function homeHandler(req, res) {
-  res.status(200).send('Server is alive this is the home page');
-}
-
-function locationHandler(req, res) {
-  // res.status(200).send('Server is alive this is the location page');
-  //get the data
-  const geoData = require('./data/geo.json');
-  const city = req.query.city;
-  console.log(req);
-  //run the data through the constructor and push to new array
-  const locationData = new Location(city, geoData);
-  //send the new array back to the front end 
-  res.status(200).json(locationData);
-
-}
-//constructor
-function Location(city, geoData) {
-  this.search_query = city;
-  this.formatted_query = geoData[0].display_name;
-  this.latitude = geoData[0].lat;
-  this.longitude = geoData[0].lon;
-  console.log(this)
-
-}
-
-
-
-//WEATHER
-function weatherHandler(req, res) {
-  // res.status(200).send('Server is alive this is the weather page');
-  try{
-  const weatherData = require('./data/darksky.json');
-  let weatherDataArray = [];
-  let weatherArray = weatherData.daily.data;
-  console.log('weather data',weatherArray);
-  // console.log('we are in handler',weatherArray);
-   weatherArray.forEach((obj) => {
-    let day = new Weather(obj);
-    weatherDataArray.push(day);
-    // console.log('this is the day log',day);
-
-  });
-
-  console.log('this is the new array', weatherDataArray);
-  res.send(weatherDataArray);
-  // res.status(200).json(weatherDataArray);
-  }
-    catch (err) {
-    console.log(err);
-  }
-
-
-//cached Geocoding locations 
+// //cached Geocoding locations 
 const cachedLocations = [];
 
 
 //----------Functions and const area ----------
-                              //-------------- Liked your next use here---------------
 const findCity = (req, res, next) => {
   //does the searched city exist? if not redirect to /error
   const city = req.query.city;
@@ -94,15 +44,19 @@ const findCity = (req, res, next) => {
       next();
     }
     else {
-      res.status(500).json({
-        status: 500,
-        responseText: `Sorry, something went wrong. Check your search. Error Code: ${req.query.error}`
-      })
+      send500(req, res);
     }
   } catch (error) {
     console.log(error);
   }
 
+}
+
+const send500 = (req, res) => {
+  res.status(500).json({
+    status: 500,
+    responseText: `Sorry, something went wrong. Check your search. Error Code: ${req.query.error}`
+  })
 }
 
 //constructor functions
@@ -122,6 +76,45 @@ const Weather = function (data) {
   })
 }
 
+const Events = function (data) {
+  this.events = data.map(event => {
+    return {
+      link: event.url,
+      name: event.title,
+      event_date: event.start_time,
+      summary: event.description
+    }
+  })
+}
+
+const DBSelect = (selection) => {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM city_explorer_locations WHERE search_query = $1;';
+    const values = [selection];
+    //chose callback, here, for handling the outcome.
+    client.query(query, values)
+      .then(results => {
+        console.log('DB "select" successful', results);
+        resolve(results);
+      })
+      .catch(error => {
+        console.log('DB "select" method unsuccessful', error)
+      })
+  })
+}
+
+const DBInsert = () => {
+  return new Promise((resolve, reject) => {
+    const query = '';
+    const values = selection;
+    client.query(query, values)
+      .then(results => {
+        console.log('DB "insert" successful', results);
+        resolve(results);
+      })
+      .catch(error => console.log('DB "insert" method unsuccessful', error));
+  })
+}
 //----------routes----------
 app.get('/', (req, res) => {
   console.log('Im alive');
@@ -133,9 +126,22 @@ app.get('/location', findCity, (req, res,) => {
   const reqCity = req.query.city;
 
   //look for a cached location that matches the query city.
+
   const cachedObj = cachedLocations.find(location => {
     return location.search_query.toLowerCase() === req.query.city ? location : undefined;
   })
+//SELECT the db for a city that matches
+  //if it is there, send it to front end
+  //if it is not there, iNSERT into database
+//TODO: WORKING HERE~!!! BUILD INSERT FUNCTION
+  DBSelect('Proof')
+    .then(results => {
+      console.log('DB results!: ', results.rows[0])
+      // res.status(200).json(the results);
+    })
+    .catch(error => console.log('broke'))
+    // .then()
+
   if (cachedObj) {
     res.status(200).json(cachedObj);
   } else {
@@ -161,29 +167,6 @@ function Weather(daily) {
   this.time = daily.time;
 }
 
-//constructor function
-
-// const Weather = function(city){
-//   try{
-//     const weatherdata = require('./data/darksky.json/daily/data')[0];
-
-//     console.log(weatherdata);
-//     //build the object
-//     this.search_query = city;
-//     this.formatted_query = weatherdata.summary;
-
-
-//   } 
-//   catch (err) {
-//     console.log(error);
-//   }
-// }
-
-// /* {
-//   search_query: 'Lynwood'
-//   formatted_query: etc etc...'
-// }}
-// */
 
 app.get('/weather', (req, res) => {
   superagent.get(`https://api.darksky.net/forecast/${process.env.DARK_SKY}/${req.query.latitude},${req.query.longitude}`)
@@ -194,54 +177,20 @@ app.get('/weather', (req, res) => {
 })
 
 app.get('/events', (req, res) => {
-  console.log(req.query);
 
-
-  /*
-  Output
-  {
-    "link": "http://seattle.eventful.com/events/seattle-code-101-explore-software-development-/E0-001-126675997-3?utm_source=apis&utm_medium=apim&utm_campaign=apic",
-    "name": "Seattle Code 101: Explore Software Development",
-    "event_date": "Sat Dec 7 2019",
-    "summary": "Thinking about a new career in software development? Start here! In this one-day workshop, you&#39;ll get a taste of a day in the life of a software developer. Code 101 helps you learn what it’s like to be a software developer through a day-long immersive course for beginners that focuses on front-end web development technologies. "
-  },
-*/
+  superagent.get(`http://api.eventful.com/json/events/search?app_key=${process.env.EVENTFUL}&location=${req.query.search_query}&sort_order=date&date=Future&page_size=30&page_number=1`)
+    .then((results) => {
+      console.log(JSON.parse(results.text));
+      const parsed = JSON.parse(results.text).events;
+      if (!parsed) {
+        send500(req, res);
+      } else {
+        const responseObj = new Events(parsed.event.slice(0, 20));
+        console.log(responseObj.events)
+        res.status(200).json(responseObj.events);
+      }
+    })
+    .catch(error => {
+      console.log(error);
+    })
 })
-
-app.get('/yelp', (req, res) => {
-
-// //routes
-
-// app.get('/location', (req,res) => {
-//   console.log('hi!');
-//   const reqCity = req.query.city;
-//   const responseObj = new Location(reqCity);
-//   console.log("in route: ",responseObj);
-//   res.status(200).send(responseObj);
-// })
-
-
-
-// app.get('/weather', (req,res) => {
-//   console.log('weather working');
-
-
-
-
-//   const reqCity = req.query.city;
-//   const responseObj = new Weather(reqCity);
-//   console.log("in transit", responseObj);
-//   res.status(200).send(responseObj);
-// })
-
-// app.get('*',(req,res) => {
-//   res.status(404).send('that route cannot be found');
-// })
-// //configure port
-app.listen(PORT, () => { console.log(`Your server is listening on ${PORT}`) });
-
-//----------routes----------
-
-// listen
-app.listen(PORT, () => { console.log(`Your server is listening on ${PORT}`) });
-
