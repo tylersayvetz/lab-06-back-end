@@ -12,11 +12,12 @@ const PORT = process.env.PORT || 3001;
 //configure express
 app.use(cors());
 
-//cached Geocoding locations
+//cached Geocoding locations 
 const cachedLocations = [];
 
 
 //----------Functions and const area ----------
+                              //-------------- Liked your next use here---------------
 const findCity = (req, res, next) => {
   //does the searched city exist? if not redirect to /error
   const city = req.query.city;
