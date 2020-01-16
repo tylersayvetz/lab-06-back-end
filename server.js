@@ -5,19 +5,28 @@ const app = express();
 const cors = require('cors');
 const superagent = require('superagent');
 require('dotenv').config();
+const pg = require('pg');
 
-const PORT = process.env.PORT || 3001;
-
+//DB config
+const client = new pg.Client(process.env.DB_URL);
+client.on('error', err => { throw err });
+client.connect()
+  .then(() => {
+    //if DB connects, then start server and listen.
+    app.listen(PORT, () => { console.log(`Your server is listening on ${PORT}`) });
+  })
+  .catch((error) => console.log("DB Failed to start.. ", error));
 
 //configure express
+const PORT = process.env.PORT || 3001;
 app.use(cors());
 
-//cached Geocoding locations 
+
+// //cached Geocoding locations 
 const cachedLocations = [];
 
 
 //----------Functions and const area ----------
-//-------------- Liked your next use here---------------
 const findCity = (req, res, next) => {
   //does the searched city exist? if not redirect to /error
   const city = req.query.city;
@@ -74,6 +83,34 @@ const Events = function (data) {
   })
 }
 
+const DBSelect = (selection) => {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM city_explorer_locations WHERE search_query = $1;';
+    const values = [selection];
+    //chose callback, here, for handling the outcome.
+    client.query(query, values)
+      .then(results => {
+        console.log('DB "select" successful', results);
+        resolve(results);
+      })
+      .catch(error => {
+        console.log('DB "select" method unsuccessful', error)
+      })
+  })
+}
+
+const DBInsert = () => {
+  return new Promise((resolve, reject) => {
+    const query = '';
+    const values = selection;
+    client.query(query, values)
+      .then(results => {
+        console.log('DB "insert" successful', results);
+        resolve(results);
+      })
+      .catch(error => console.log('DB "insert" method unsuccessful', error));
+  })
+}
 //----------routes----------
 app.get('/', (req, res) => {
   // console.log(req.query);
@@ -87,9 +124,22 @@ app.get('/location', (req, res) => {
   const reqCity = req.query.city;
 
   //look for a cached location that matches the query city.
+
   const cachedObj = cachedLocations.find(location => {
     return location.search_query.toLowerCase() === req.query.city ? location : undefined;
   })
+//SELECT the db for a city that matches
+  //if it is there, send it to front end
+  //if it is not there, iNSERT into database
+//TODO: WORKING HERE~!!! BUILD INSERT FUNCTION
+  DBSelect('Proof')
+    .then(results => {
+      console.log('DB results!: ', results.rows[0])
+      // res.status(200).json(the results);
+    })
+    .catch(error => console.log('broke'))
+    // .then()
+
   if (cachedObj) {
     res.status(200).json(cachedObj);
   } else {
@@ -139,14 +189,7 @@ app.get('/events', (req, res) => {
     })
 })
 
-app.get('/yelp', (req, res) => {
-
-})
-
 app.get('*', (req, res) => {
   res.status(404).send('that route cannot be found');
 })
 
-
-// listen
-app.listen(PORT, () => { console.log(`Your server is listening on ${PORT}`) });
