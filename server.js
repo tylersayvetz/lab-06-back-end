@@ -33,6 +33,7 @@ const cachedLocations = [];
 //----------Functions and const area ----------
 const findCity = (req, res, next) => {
   //does the searched city exist? if not redirect to /error
+  console.log("findCity");
   const city = req.query.city;
   try {
     const rawData = require('./data/geo.json');
@@ -121,7 +122,7 @@ app.get('/', (req, res) => {
   res.status(200).send('Server is alive');
 })
 
-app.get('/location', findCity, (req, res,) => {
+app.get('/location', (req, res,) => {
   console.log('hi!');
   const reqCity = req.query.city;
 
@@ -133,14 +134,12 @@ app.get('/location', findCity, (req, res,) => {
 //SELECT the db for a city that matches
   //if it is there, send it to front end
   //if it is not there, iNSERT into database
-//TODO: WORKING HERE~!!! BUILD INSERT FUNCTION
-  DBSelect('Proof')
-    .then(results => {
-      console.log('DB results!: ', results.rows[0])
-      // res.status(200).json(the results);
-    })
-    .catch(error => console.log('broke'))
-    // .then()
+//TODO: WORKING HERE! BUILD INSERT FUNCTION
+  // DBSelect('Proof')
+  //   .then(results => {
+  //     console.log('DB results!: ', results.rows[0])
+  //   })
+  //   .catch(error => console.log('broke'))
 
   if (cachedObj) {
     res.status(200).json(cachedObj);
@@ -161,17 +160,11 @@ app.get('/location', findCity, (req, res,) => {
       })
   }
 
-//CONSTRUCTOR
-function Weather(daily) {
-  this.forecast = daily.summary;
-  this.time = daily.time;
-}
-
-
 app.get('/weather', (req, res) => {
   superagent.get(`https://api.darksky.net/forecast/${process.env.DARK_SKY}/${req.query.latitude},${req.query.longitude}`)
     .then((results) => {
       const responseObj = new Weather(results.body);
+      console.log(responseObj.weather);
       res.status(200).json(responseObj.weather);
     })
 })
@@ -186,11 +179,12 @@ app.get('/events', (req, res) => {
         send500(req, res);
       } else {
         const responseObj = new Events(parsed.event.slice(0, 20));
-        console.log(responseObj.events)
+        // console.log(responseObj.events)
         res.status(200).json(responseObj.events);
       }
     })
     .catch(error => {
       console.log(error);
     })
+  })
 })
