@@ -1,7 +1,11 @@
 'use strict'
-
+//express library is my server
 const express = require('express');
+// const pg = require('pg');
+//const client = new pg.client(process.env.DATABASE_URL);
+//client.on('error', err => console.error(err));
 const app = express();
+//allows our server talk to the front end
 const cors = require('cors');
 const superagent = require('superagent');
 require('dotenv').config();
@@ -45,6 +49,7 @@ const findCity = (req, res, next) => {
   } catch (error) {
     console.log(error);
   }
+
 }
 
 const send500 = (req, res) => {
@@ -60,7 +65,6 @@ const Location = function (city) {
   this.formatted_query = city.display_name;
   this.latitude = city.lat;
   this.longitude = city.lon;
-  console.log(this);
 }
 
 const Weather = function (data) {
@@ -113,13 +117,11 @@ const DBInsert = () => {
 }
 //----------routes----------
 app.get('/', (req, res) => {
-  // console.log(req.query);
-  // console.log(req.params); 
   console.log('Im alive');
   res.status(200).send('Server is alive');
 })
 
-app.get('/location', (req, res) => {
+app.get('/location', findCity, (req, res,) => {
   console.log('hi!');
   const reqCity = req.query.city;
 
@@ -151,7 +153,7 @@ app.get('/location', (req, res) => {
         // cache the resultant object.
         cachedLocations.push(responseObj);
         // send the obj.
-        console.log(responseObj);
+    
         res.status(200).json(responseObj);
       })
       .catch((error) => {
@@ -159,12 +161,16 @@ app.get('/location', (req, res) => {
       })
   }
 
-})
+//CONSTRUCTOR
+function Weather(daily) {
+  this.forecast = daily.summary;
+  this.time = daily.time;
+}
+
 
 app.get('/weather', (req, res) => {
   superagent.get(`https://api.darksky.net/forecast/${process.env.DARK_SKY}/${req.query.latitude},${req.query.longitude}`)
     .then((results) => {
-      console.log(results);
       const responseObj = new Weather(results.body);
       res.status(200).json(responseObj.weather);
     })
@@ -188,8 +194,3 @@ app.get('/events', (req, res) => {
       console.log(error);
     })
 })
-
-app.get('*', (req, res) => {
-  res.status(404).send('that route cannot be found');
-})
-
