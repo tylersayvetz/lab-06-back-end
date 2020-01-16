@@ -17,7 +17,7 @@ const cachedLocations = [];
 
 
 //----------Functions and const area ----------
-                              //-------------- Liked your next use here---------------
+//-------------- Liked your next use here---------------
 const findCity = (req, res, next) => {
   //does the searched city exist? if not redirect to /error
   const city = req.query.city;
@@ -31,14 +31,18 @@ const findCity = (req, res, next) => {
       next();
     }
     else {
-      res.status(500).json({
-        status: 500,
-        responseText: `Sorry, something went wrong. Check your search. Error Code: ${req.query.error}`
-      })
+      send500(req, res);
     }
   } catch (error) {
     console.log(error);
   }
+}
+
+const send500 = (req, res) => {
+  res.status(500).json({
+    status: 500,
+    responseText: `Sorry, something went wrong. Check your search. Error Code: ${req.query.error}`
+  })
 }
 
 //constructor functions
@@ -55,6 +59,17 @@ const Weather = function (data) {
     return {
       forecast: time.summary,
       time: new Date(time.time * 1000).toDateString()
+    }
+  })
+}
+
+const Events = function (data) {
+  this.events = data.map(event => {
+    return {
+      link: event.url,
+      name: event.title,
+      event_date: event.start_time,
+      summary: event.description
     }
   })
 }
@@ -102,6 +117,25 @@ app.get('/weather', (req, res) => {
       console.log(results);
       const responseObj = new Weather(results.body);
       res.status(200).json(responseObj.weather);
+    })
+})
+
+app.get('/events', (req, res) => {
+
+  superagent.get(`http://api.eventful.com/json/events/search?app_key=${process.env.EVENTFUL}&location=${req.query.search_query}&sort_order=date&date=Future&page_size=30&page_number=1`)
+    .then((results) => {
+      console.log(JSON.parse(results.text));
+      const parsed = JSON.parse(results.text).events;
+      if (!parsed) {
+        send500(req, res);
+      } else {
+        const responseObj = new Events(parsed.event.slice(0, 20));
+        console.log(responseObj.events)
+        res.status(200).json(responseObj.events);
+      }
+    })
+    .catch(error => {
+      console.log(error);
     })
 })
 
