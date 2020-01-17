@@ -162,4 +162,8 @@ app.get('/location', (req, res, ) => {
         console.log();
       })
   })
+
+  app.get('/movies', (req, res) => {
+    superagent.get('')
+  })
 })

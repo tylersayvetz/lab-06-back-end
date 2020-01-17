@@ -21,13 +21,16 @@ Someone seeking to replicate this API should :
 
 
 ## Change Log
-<!-- Use this area to document the iterative changes made to your application as each feature is successfully implemented. Use time stamps. Here's an examples:
 
-01-01-2001 4:59pm - Application now has a fully-functional express server, with a GET route for the location resource.
 
-## Credits and Collaborations
-<!-- Give credit (and a link) to other people or resources that helped you build this application. -->
--->
+### Make api calls to TMDb
+
+
+### Integrate PostGres DB caching of searched locations.
+When a user seraches for a city, that city will be cached in the DB to save an fucture duplicate API call. Works as long as person spells the city the same each time. There may be dupplicate db entries for misspelled citis. Case insensitive. 
+Thank you to locationIQ for their willingness to let me use their location information!.
+
+
 Continuing to catch up on lab-06. Stopped after the bad-query-handler-step (#4 on Trello) and continued to lab-07 and working with live APIs.
 
 Current state of project is not deployed to Heroku. LocalHost is proving to be more than adequate for testing and the project is sufficiently linear to work in one working branch. Will merge with master and depoy to Heroku before 2pm 1/15.
@@ -56,6 +59,23 @@ RECIEVE: plain text array of objects
   },
   ...
 ]
+
+Lab 8 estimates: 
+
+Number and name of feature: _____Movie db query___________
+
+Estimate of time needed to complete: _30mins_
+
+Start time: _11
+
+Finish time: __1130__
+
+Actual time needed to complete: _____
+
+
+
+
+
 
 
 Lab 7 estimates:
