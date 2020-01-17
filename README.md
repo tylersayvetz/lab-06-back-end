@@ -70,7 +70,7 @@ Start time: _11
 
 Finish time: __1130__
 
-Actual time needed to complete: _____
+Actual time needed to complete: _1345_ lolol_
 
 
 
