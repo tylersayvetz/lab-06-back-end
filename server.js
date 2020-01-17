@@ -63,6 +63,20 @@ const Events = function (data) {
   })
 }
 
+const Movies = function (data) {
+  this.movies = data.map(movie => {
+    return {
+      title: movie.original_title,
+      overview: movie.overview,
+      average_votes: movie.vote_average,
+      total_votes: movie.vote_count,
+      image_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+      popularity: movie.popularity,
+      released_on: movie.release_date
+    }
+  })
+}
+
 const DBSelect = (selection) => {
   return new Promise((resolve, reject) => {
     const query = 'SELECT * FROM city_explorer_locations WHERE search_query = $1;';
@@ -161,5 +175,15 @@ app.get('/location', (req, res, ) => {
         console.log(error);
         console.log();
       })
+  })
+
+  app.get('/movies', (req, res) => {
+    superagent.get(`https://api.themoviedb.org/3/search/multi?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${req.query.search_query}&page=1&include_adult=false&region=US`)
+      .then(results => {
+        const parsed = JSON.parse(results.text);
+        const responseObj = new Movies(parsed.results);
+        res.status(200).json(responseObj.movies);
+      })
+      .catch(error => console.log(error))
   })
 })
