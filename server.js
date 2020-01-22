@@ -76,20 +76,27 @@ const Movies = function (data) {
     }
   })
 }
+//I need a query builder.... wtf mate. (is that called an ORM?)
+// const DBSelectEvent = (selection) => {
+//   return  new Promise((resolve, reject) => {
+//     const query = 'SELECT * FROM events WHERE '
+//   })
+// }
 
-const DBSelect = (selection) => {
+const DBSelect = (search_Query, table) => {
   return new Promise((resolve, reject) => {
-    const query = 'SELECT * FROM city_explorer_locations WHERE search_query = $1;';
-    const values = [selection];
+    const query = 'SELECT * FROM ' + table + ' WHERE search_query = $1;';
+    const values = [search_Query];
     //chose callback, here, for handling the outcome.
     client.query(query, values)
       .then(results => {
-        console.log('DB "select" successful', results);
+        console.log('DB "select" successful');
         if (results.rows.length > 0) {
           console.log('DB found one or more rows that matched the query')
-          resolve(results.rows[0]);
+          resolve(results.rows);
         } else {
-          reject('DB Didnt find any city that matched the query')
+          console.log('didnt find an row for that query')
+          resolve(null)
         }
       })
       .catch(error => {
@@ -100,14 +107,26 @@ const DBSelect = (selection) => {
 
 const DBInsertLocations = (search_query, formatted_query, latitude, longitude) => {
   return new Promise((resolve, reject) => {
-    const query = 'INSERT INTO city_explorer_locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4)';
+    const query = 'INSERT INTO city_explorer_locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4);';
     const values = [search_query.toLowerCase(), formatted_query, latitude, longitude];
     client.query(query, values)
       .then(results => {
-        console.log('DB "insert" successful', results);
-        resolve(results);
+        console.log('DB "insert" successful, city cached');
+        resolve();
       })
       .catch(error => console.log('DB "insert" method unsuccessful', error));
+  })
+}
+
+const DBInsertEvent = (search_query, event_date, link, name, summary) => {
+  return new Promise((resolve, reject) => {
+    const query = 'INSERT INTO events (search_query, event_date, link, name, summary) VALUES ($1, $2, $3, $4, $5);';
+    const values = [search_query.toLowerCase(), event_date, link, name, summary];
+    client.query(query, values)
+      .then((results) => {
+        console.log('DB "insert" worked')
+      })
+    
   })
 }
 
@@ -122,16 +141,18 @@ app.get('/location', (req, res, ) => {
   const reqCity = req.query.city.toLowerCase();
   let responseSent = false;
 
-  DBSelect(reqCity)
+  DBSelect(reqCity, 'city_explorer_locations')
     .then(results => {
-      console.log('DB results!: ', results)
-      res.status(200).json(results);
-      responseSent = true;
-      //TODO: how do I terminate the execution of the route here? 
+      if (results) {
+        res.status(200).json(results[0]);
+        responseSent = true;
+      } else {
+        console.log('DB didnt find anything in cache..hitting API..');
+        return superagent.get(`https://us1.locationiq.com/v1/search.php?key=${process.env.LOCATION_IQ}&q=${reqCity}&format=json`)
+      }
     })
     .catch((error) => {
-      console.log('DB didnt fint anything..hitting API..');
-      return superagent.get(`https://us1.locationiq.com/v1/search.php?key=${process.env.LOCATION_IQ}&q=${reqCity}&format=json`)
+      console.log(error);
     })
     .then(results => {
       //then construct a new Location with the results.
@@ -140,7 +161,7 @@ app.get('/location', (req, res, ) => {
         const responseObj = new Location(results.body[0]);
         //insert new data into DB
         DBInsertLocations(responseObj.search_query, responseObj.formatted_query, responseObj.latitude, responseObj.longitude)
-          .then(results => console.log('city inserted into DB'))
+          .then(() => console.log('city inserted into DB'))
           .catch(error => console.log('There was an error inserting data into DB', error))
         res.status(200).json(responseObj);
       }
@@ -158,32 +179,56 @@ app.get('/location', (req, res, ) => {
   })
 
   app.get('/events', (req, res) => {
-
-    superagent.get(`http://api.eventful.com/json/events/search?app_key=${process.env.EVENTFUL}&location=${req.query.search_query}&sort_order=date&date=Future&page_size=30&page_number=1`)
+    let responseSent = false;
+    DBSelect(req.query.search_query, 'events')
       .then((results) => {
-        console.log(JSON.parse(results.text));
-        const parsed = JSON.parse(results.text).events;
-        if (!parsed) {
-          send500(req, res);
+        if (results) {
+          res.status(200).json(results);
+          responseSent = true;
         } else {
-          const responseObj = new Events(parsed.event.slice(0, 20));
-          // console.log(responseObj.events)
-          res.status(200).json(responseObj.events);
+          return superagent.get(`http://api.eventful.com/json/events/search?app_key=${process.env.EVENTFUL}&location=${req.query.search_query}&sort_order=date&date=Future&page_size=30&page_number=1`)
         }
       })
+      .then((results) => {
+        if (!responseSent) {
+          const parsed = JSON.parse(results.text).events;
+          if (!parsed) {
+            send500(req, res);
+          } else {
+            const responseObj = new Events(parsed.event.slice(0, 20));
+            responseObj.events.forEach(event => {
+              let {event_date, link, name, summary} = event;
+              if (summary) {
+                summary = summary.slice(0,250);
+              } else {
+                summary = 'no summary';
+              }
+              DBInsertEvent(req.query.search_query, event_date, link, name, summary.slice(0,250));
+            })
+            // DBInsertEvent()
+            res.status(200).json(responseObj.events);
+          }
+        }
+      })
+      .catch(error => { console.log('error with selecting events', error) })
+
+
       .catch(error => {
         console.log(error);
-        console.log();
       })
+    })
   })
 
-  app.get('/movies', (req, res) => {
-    superagent.get(`https://api.themoviedb.org/3/search/multi?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${req.query.search_query}&page=1&include_adult=false&region=US`)
-      .then(results => {
-        const parsed = JSON.parse(results.text);
-        const responseObj = new Movies(parsed.results);
-        res.status(200).json(responseObj.movies);
-      })
-      .catch(error => console.log(error))
-  })
+app.get('/movies', (req, res) => {
+  superagent.get(`https://api.themoviedb.org/3/search/multi?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${req.query.search_query}&page=1&include_adult=false&region=US`)
+    .then(results => {
+      const parsed = JSON.parse(results.text);
+      const responseObj = new Movies(parsed.results);
+      res.status(200).json(responseObj.movies);
+    })
+    .catch(error => console.log(error))
+})
+
+app.get('/yelp', (req, res) => {
+
 })
